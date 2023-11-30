@@ -1,0 +1,27 @@
+user_config : 
+
+model_name : collaborative_filtering
+
+data : data/clicks.csv
+
+n_factor : 200
+n_epoch : 200
+
+learning_rate : 0.01
+
+mlflow : 
+  experiment_name : recommenders
+  run_name : collaborative_filtering_bpr
+  
+
+
+
+
+
+
+
+
+
+
+
+

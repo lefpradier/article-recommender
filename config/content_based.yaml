@@ -1,0 +1,13 @@
+user_config : 
+
+model_name : content_based
+
+data : data/clicks.csv
+
+top_k : 10
+pca_n_comp : 25
+
+mlflow : 
+  experiment_name : recommenders
+  run_name : content_based_tfidf
+  

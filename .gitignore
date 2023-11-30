@@ -1,0 +1,10 @@
+mlruns
+outputs
+__pycache__
+draft.ipynb
+ml-latest-small
+multirun
+performances
+plots
+model
+data

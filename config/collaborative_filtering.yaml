@@ -1,0 +1,25 @@
+user_config : 
+
+model_name : collaborative_filtering
+
+data : data/clicks.csv
+
+batch_size : 32768
+n_epoch : 2
+
+mlflow : 
+  experiment_name : recommenders
+  run_name : collaborative_filtering_tfidf
+  
+
+
+
+
+
+
+
+
+
+
+
+

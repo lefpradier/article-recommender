@@ -1,0 +1,10 @@
+user_config : 
+
+model_name : popularity
+
+data : data/clicks.csv
+
+mlflow : 
+  experiment_name : recommenders
+  run_name : popularity
+  

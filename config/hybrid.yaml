@@ -1,0 +1,39 @@
+user_config : 
+
+hydra :
+  sweeper : 
+    params :
+      n_factor : 50, 100, 200, 400
+      thr_pop : 0, 3, 6, 12
+    
+model_name : hybrid
+data : data/clicks.csv
+
+max_sampled : 10000
+
+thr_cb : -1
+thr_pop : 0
+
+top_k : 5 
+pca_n_comp : 25
+batch_size : 16384 
+n_epoch : 200
+n_factor :  200
+learning_rate : 0.01
+
+mlflow : 
+  experiment_name : recommenders
+  run_name : hybrid
+  
+
+
+
+
+
+
+
+
+
+
+
+
