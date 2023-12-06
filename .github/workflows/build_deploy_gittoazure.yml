@@ -1,0 +1,99 @@
+name: Build and deploy app function and blob to Azure
+
+on:
+  [push]
+
+permissions:
+  contents: 'read'
+  packages: 'write'
+env:
+  AZURE_FUNCTIONAPP_NAME: 'article-recommender'   # set this to your function app name on Azure
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './deployment/backend'       # set this to the path to your function app project, defaults to the repository root
+  PYTHON_VERSION: '3.10'                     # set this to the python version to use (e.g. '3.6', '3.7', '3.8')
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: 'article-recommender-mvp'
+            artifact: 'projet9-app'
+            profileName: 'APP'
+            dockerfile: './deployment/frontend/Dockerfile'
+
+    environment:
+      name: production
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase the repo name
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+      - name: Build and push container image to registry
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ghcr.io/${{ env.REPO }}:${{ matrix.artifact }}
+          file: ${{ matrix.dockerfile }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@85270a1854658d167ab239bce43949edb336fa7c
+        with:
+          app-name: ${{ matrix.app }}
+          publish-profile: ${{ secrets[matrix.profileName] }}
+          images: 'ghcr.io/${{ env.REPO }}:${{ matrix.artifact }}'
+
+  build-and-deploy-function:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v3
+
+    - name: Setup Python ${{ env.PYTHON_VERSION }} Environment
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: 'Resolve Project Dependencies Using Pip'
+      shell: bash
+      run: |
+        pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+        popd
+
+    - name: 'Run Azure Functions Action'
+      uses: Azure/functions-action@v1
+      id: fa
+      with:
+        app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+        package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+        scm-do-build-during-deployment: true
+        enable-oryx-build: true
+
+  upload-blob:
+    runs-on: ubuntu-latest
+    steps: 
+        -uses: actions/checkout@v2
+        -uses: bacongobbler/azure-blob-storage-upload@main
+        with: 
+            source_dir: "./deployment/to_upload"
+            container_name: "recommender"
+            connection_string: ${{ secrets.CONNECTION_STRING}}
+            sync: "true"
