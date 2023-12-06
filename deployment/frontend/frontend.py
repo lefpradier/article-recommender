@@ -6,9 +6,6 @@ import streamlit_authenticator as staut
 import yaml
 from yaml.loader import SafeLoader
 
-##! STREAMLIT
-
-
 # header
 st.title("Article recommender web app")
 
