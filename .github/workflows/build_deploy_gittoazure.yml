@@ -90,8 +90,8 @@ jobs:
   upload-blob:
     runs-on: ubuntu-latest
     steps: 
-        -uses: actions/checkout@v2
-        -uses: bacongobbler/azure-blob-storage-upload@main
+      - uses: actions/checkout@v2
+      - uses: bacongobbler/azure-blob-storage-upload@main
         with: 
             source_dir: "./deployment/to_upload"
             container_name: "recommender"
