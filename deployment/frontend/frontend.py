@@ -24,7 +24,8 @@ with tab1:
             #!requete post http qui va trigger
             data = {"user_id": user_id}
             res = requests.post(
-                "https://article-recommender.azurewebsites.net/recommend", params=data
+                "https://article-recommender.azurewebsites.net/api/recommend",
+                params=data,
             )
             #!recuperation des resultats de la fct
             res = res.json()
@@ -59,7 +60,7 @@ with tab2:
                 data = {"new_user_id": new_usr}
                 #!post on the address generated via azure deployment function
                 res = requests.post(
-                    "https://article-recommender.azurewebsites.net/add_user",
+                    "https://article-recommender.azurewebsites.net/api/add_user",
                     params=data,
                 )
                 #!print message update db
@@ -72,7 +73,7 @@ with tab2:
             if new_article is not None:
                 data = {"new_article_id": new_article}
                 res = requests.post(
-                    "https://article-recommender.azurewebsites.net/add_article",
+                    "https://article-recommender.azurewebsites.net/api/add_article",
                     params=data,
                 )
                 #!print message update db
