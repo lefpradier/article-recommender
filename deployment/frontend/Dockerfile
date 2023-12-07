@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 COPY deployment/frontend .
 
-WORKDIR .
+WORKDIR /APP
 
 RUN pip install -r requirements.txt
 

@@ -95,5 +95,5 @@ jobs:
         with: 
             source_dir: "./deployment/to_upload"
             container_name: "recommender"
-            connection_string: ${{ secrets.CONNECTION_STRING}}
+            connection_string: ${{ secrets.CONNECTION_STRING }}
             sync: "true"
