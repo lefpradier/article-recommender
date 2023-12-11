@@ -18,3 +18,4 @@ RUN pip install -r requirements.txt
 EXPOSE 5000
 
 ENTRYPOINT ["streamlit", "run", "frontend.py", "--server.port=5000"]
+ 
