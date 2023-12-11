@@ -6,3 +6,7 @@ azure-functions
 azure-storage-blob
 pandas
 numpy
+termcolor
+tqdm
+scipy
+implicit
