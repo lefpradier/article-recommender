@@ -25,7 +25,7 @@ def makerun(cfg: DictConfig):
         #!importation des data
         data = pd.read_csv(cfg.data)
 
-        #!mide en forme
+        #!mise en forme
         # save usr item unique
         items = data["click_article_id"].unique().tolist()
         items.sort()
@@ -37,8 +37,6 @@ def makerun(cfg: DictConfig):
         train, test = train_test_split(clicks_freq, random_state=42, test_size=0.2)
         train = p9.convert_to_spm(train, users=usrs, items=items)
         test = p9.convert_to_spm(test, users=usrs, items=items)
-        # clicks_freq = p9.convert_to_spm(clicks_freq)
-        # train, test = train_test_split(clicks_freq, random_state=42)
         print(colored("model", "blue"))
         #!model
         model = BayesianPersonalizedRanking(
@@ -68,6 +66,7 @@ def makerun(cfg: DictConfig):
         print("mapatk: ", mapatk)
         #!artefact
 
+        #!logging
         mlflow.log_metrics(scores)
         mlflow.log_artifact("model/bpr.pkl")
         mlflow.log_artifact("model/bpr_reads.pkl")

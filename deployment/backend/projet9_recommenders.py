@@ -10,9 +10,23 @@ warnings.filterwarnings("ignore")
 
 
 class hybrid_recommender_bpr:
+    """
+    Algorithme de recommandation hybride dont l'algorithme de
+    collaborative filtering est un Bayesian Personalized ranking
+    """
+
     def __init__(
         self, model_cf, model_pop, reads, thr_pop=0, thr_cb=0, model_content=None
     ):
+        """
+        Paramètres :
+        - model_cf: modèle BPR
+        - model_pop: pd.DataFrame, popularité des articles
+        - model_content: matrice de similarité entre articles
+        - reads: dict, users et items pris en compte dans le BPR
+        - thr_pop: int, seuil de nombre d'articles lus au dessus duquel on n'applique pas l'algorithme de popularité
+        - thr_cb: int, seuil de nombre d'articles lus au dessus duquel on n'applique pas l'algorithme content-based
+        """
         self.model_cf = model_cf
         self.model_pop = model_pop
         self.model_content = model_content
@@ -21,6 +35,13 @@ class hybrid_recommender_bpr:
         self.reads = reads
 
     def __recommend_pop(self, lu, k=5):
+        """
+        Recommandation par popularité
+        ---
+        Paramètres :
+        - lu: liste d'articles déjà lus par utilisateur
+        - k: int, nombre de recommandations à effectuer
+        """
         maxread = lu.groupby("user_id").size().max()
         sub_pop = self.model_pop.head(maxread + k)
         non_lu = (
@@ -39,6 +60,12 @@ class hybrid_recommender_bpr:
         return top_k
 
     def __input(self, user_items):
+        """
+        Mise en forme des données pour l'algorithme BPR
+        ---
+        Paramètres :
+        - user_items: pd.DataFrame, tableau users x items lus
+        """
         row = pd.Categorical(user_items["user_id"], categories=self.reads["usrs"]).codes
         col = pd.Categorical(
             user_items["article_id"], categories=self.reads["items"]
@@ -50,10 +77,16 @@ class hybrid_recommender_bpr:
         return spm
 
     def __predict(self, spm):
+        """
+        Prédiction des recommandations par l'algorithme BPR
+        ---
+        Paramètres :
+        - spm: sparse matrix items x users
+        """
         usrs = spm.shape[0]
         usrs_idx = np.arange(usrs)
         usrs_idx = usrs_idx[np.ediff1d(spm.indptr) > 0]
-        #!4.prediction sur la db
+        # prédiction
         preds, _ = self.model_cf.recommend(
             userid=usrs_idx, user_items=spm[usrs_idx], N=5
         )
@@ -62,12 +95,25 @@ class hybrid_recommender_bpr:
         return top5
 
     def __recommend_cf_step(self, user_items):
+        """
+        Prédiction avec l'algorithme BPR sur un batch d'utilisateurs
+        ---
+        Paramètres :
+        - user_items: pd.DataFrame, tableau items x users
+        """
         it_usr_model = self.__input(user_items)
         top5 = self.__predict(it_usr_model)
-        #!5.reconversion des idx_it vers ceux de la db init
         return top5
 
     def __recommend_cf(self, lu, k=5, step=400000):
+        """
+        Recommandation par l'algorithme BPR et organisation en batchs
+        ---
+        Paramètres :
+        - lu: liste des articles déjà lus par les utilisateurs
+        - k: int, nombre de recommandations à faire
+        - step: int, taille des batchs
+        """
         top_k = []
         all_users = lu["user_id"].unique().tolist()
         with tqdm(len(all_users)) as bar:
@@ -81,6 +127,13 @@ class hybrid_recommender_bpr:
         return top_k
 
     def __recommend_cb(self, lu, k=5):
+        """
+        Recommandation par l'algorithme basé sur la similarité entre articles
+        ---
+        Paramètres :
+        - lu: liste des articles déjà lus par les utilisateurs
+        - k: nombre de recommandations à effectuer
+        """
         sim_df_lu = self.model_cb.merge(
             lu, left_on="ref_item", right_on="article_id", how="right"
         )
@@ -111,13 +164,23 @@ class hybrid_recommender_bpr:
         return top_k
 
     def recommend(self, lu):
+        """
+        Découpage des utilisateurs en fonction du nombre d'articles lus
+        et application des différents algorithmes de recommandation
+        ---
+        Paramètres :
+        - lu: liste des articles déjà lus par les différents utilisateurs
+        """
+        # comptage du nombre d'articles lus par chaque utilisateur
         n_user = lu.groupby("user_id").size().reset_index().rename(columns={0: "count"})
+        # découpage en plusieurs subsets en fonctions des seuils thr_pop et thr_cb
         users_pop = n_user.loc[n_user["count"] < self.thr_pop, :]
         users_cb = n_user.loc[n_user["count"] < self.thr_cb, :]
         users_cf = n_user.loc[
             (n_user["count"] >= self.thr_cb) & (n_user["count"] >= self.thr_pop), :
         ]
         top_k = []
+        # application de l'algorithme de popularité
         if users_pop.shape[0] > 0:
             print(colored("apply popularity recommender", "yellow"))
             topk_pop = self.__recommend_pop(
@@ -125,11 +188,13 @@ class hybrid_recommender_bpr:
             )
             topk_pop["method"] = "popularity"
             top_k.append(topk_pop)
+        # application de l'algorithme content-based
         if users_cb.shape[0] > 0 and self.model_content is not None:
             print(colored("apply content-based recommender", "yellow"))
             topk_cb = self.__recommend_cb(lu[lu["user_id"].isin(users_cb["user_id"])])
             topk_cb["method"] = "content_based"
             top_k.append(topk_cb)
+        # application de l'algorithme BPR
         if users_cf.shape[0] > 0:
             print(colored("apply collaborative filtering recommender", "yellow"))
             topk_cf = self.__recommend_cf(lu[lu["user_id"].isin(users_cf["user_id"])])

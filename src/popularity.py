@@ -47,6 +47,7 @@ def makerun(cfg: DictConfig):
         fig.savefig("plots/apatk_%s.png" % cfg.model_name)
         perf.to_csv("performances/apatk_relevant_%s" % cfg.model_name, index=False)
 
+        #!logging
         mlflow.log_metrics(scores)
         mlflow.log_artifact("model/popularity.csv")
         mlflow.log_artifact("plots/apatk_%s.png" % cfg.model_name)

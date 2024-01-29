@@ -10,16 +10,16 @@ from yaml.loader import SafeLoader
 st.title("Article recommender web app")
 
 
-####TABS
+#!Création de deux tabs
 tab1, tab2 = st.tabs(["Get recommendations", "Admin"])
 
+#!Tab utilisateur
 with tab1:
     st.header("Top 5 recommendations")
     # Fenêtre d'entrée de l'usr
     user_id = st.text_input("Enter your ID")
     # Bouton de prédiction
     if st.button("Predict top 5 recommendations"):
-        # st.text("Not implemented yet")
         if user_id is not None:
             #!requete post http qui va trigger
             data = {"user_id": user_id}
@@ -37,20 +37,22 @@ with tab1:
                     st.markdown(str(c) + str(". article ") + str(t))
                     c += 1
 
-                # st.text(top5)
             # si aucune reco n'a été renvoyé, afficher l'erreur
             else:
                 st.text("Error detail:")
                 error = res.get("detail")
                 st.text(error)
 
+#!Tab admin
 with tab2:
+    # Paramètres d'authentification
     with open("config.yaml") as file:
         config = yaml.load(file, Loader=SafeLoader)
     aut = staut.Authenticate(
         config["credentials"], config["cookie"]["name"], config["cookie"]["key"]
     )
     name, status, user_name = aut.login("login", "main")
+    # Si l'authentification est correcte
     if status:
         aut.logout("logout", "main")
         new_usr = st.text_input("Enter a new user ID")
@@ -79,6 +81,7 @@ with tab2:
                 #!print message update db
                 res = res.json()
                 st.text(res.get("message"))
+    # Si pas d'authentification, la demander
     elif status == False:
         st.error("Username / password is not correct")
     elif status == None:

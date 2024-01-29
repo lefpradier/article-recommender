@@ -40,7 +40,7 @@ connection_string = "AzureWebJobsStorage"
 )
 @app.blob_input(
     arg_name="modelbpr",
-    path="recommender/bpr.pkl",
+    path="recommender/bpr50.pkl",
     connection=connection_string,
     data_type="binary",
 )
@@ -51,6 +51,16 @@ def predict(
     bprreads: func.InputStream,
     userdb: func.InputStream,
 ) -> str:
+    """
+    Prédiction de recommandations d'articles pour un utilisateur
+    ---
+    Paramètres :
+    - req : contenu de la requête HTTP
+    - modelpop : blob input, modèle de popularité
+    - modelbpr : blob input, modèle de collaborative filtering BPR
+    - bprreads : blob input, métadonnées du modèle BPR
+    - userdb : blob input, base de données utilisateurs
+    """
     logging.info("Python HTTP trigger function processed a request.")
     usr = req.params.get("user_id")
     if not usr:
@@ -61,7 +71,7 @@ def predict(
         else:
             usr = req_body.get("user_id")
     if usr:
-        ####!INSERT MODEL AND PREDICTION ACTIONS #####
+        #!Modèle et actions de prédiction
         user_db = pkl.loads(userdb.read())
         if int(usr) in user_db.keys():
             bpr = pkl.loads(modelbpr.read())
@@ -73,7 +83,7 @@ def predict(
             lu = pd.DataFrame({"user_id": [], "article_id": []})
             lu["article_id"] = user_db[int(usr)]
             lu["user_id"] = int(usr)
-            # revoie json avec top5
+            # renvoie json avec top5
             top5 = recommender.recommend(lu)
             top5 = top5[0].values[0].tolist()
             res = {"user_id": usr, "top5": top5}
@@ -87,7 +97,7 @@ def predict(
 
 
 #!ROUTE ADMIN USER
-#!déclenchement de la prediction
+#!déclenchement de la modification DB
 @app.function_name(name="add_user")
 @app.route(route="add_user", auth_level=func.AuthLevel.ANONYMOUS)
 #!blob input and output
@@ -108,6 +118,14 @@ def add_user(
     userdb: func.InputStream,
     newuserdb: func.Out[func.InputStream],
 ) -> str:
+    """
+    Ajout d'un utilisateur à la base de données
+    ---
+    Paramètres :
+    - req : contenu de la requête HTTP
+    - userdb : blob input, base de données avant update
+    - newuserdb : blob output, base de données après update
+    """
     add_usr = req.params.get("new_user_id")
     if not add_usr:
         try:
@@ -134,7 +152,7 @@ def add_user(
 
 
 #!ROUTE ADMIN ARTICLE
-#!déclenchement de la prediction
+#!déclenchement de la modification DB
 @app.function_name(name="add_article")
 @app.route(route="add_article", auth_level=func.AuthLevel.ANONYMOUS)
 #!blob input and output
@@ -155,6 +173,14 @@ def add_article(
     articledb: func.InputStream,
     newarticledb: func.Out[func.InputStream],
 ) -> str:
+    """
+    Ajout d'un article à la base de données
+    ---
+    Paramètres :
+    - req : contenu de la requête HTTP
+    - articledb : blob input, base de données avant update
+    - newarticledb : blob output, base de données après update
+    """
     add_item = req.params.get("new_article_id")
     if not add_item:
         try:

@@ -44,7 +44,7 @@ def makerun(cfg: DictConfig):
                 "score": np.squeeze(y_test),
             }
         )
-        # def des TP
+        # définition des positifs
         relevant = p9.relevant(x_test_df[x_test_df["score"] > 0])
 
         #!model
@@ -81,6 +81,7 @@ def makerun(cfg: DictConfig):
         fig.savefig("plots/apatk_%s.png" % cfg.model_name)
         perf.to_csv("performances/apatk_relevant_%s.csv" % cfg.model_name, index=False)
 
+        #!logging
         mlflow.log_metrics(scores)
         mlflow.log_artifact("model/svd_encodings.pkl")
         mlflow.log_artifact("model/svd")

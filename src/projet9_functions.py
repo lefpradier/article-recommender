@@ -6,19 +6,22 @@ import warnings
 import matplotlib.pyplot as plt
 import pickle as pkl
 
-# from tfrec.models import SVDpp, SVD
-# from tfrec.utils import preprocess_and_split
+from tfrec.models import SVDpp, SVD
+from tfrec.utils import preprocess_and_split
 from sklearn.decomposition import PCA
 from chunkdot import cosine_similarity_top_k
 from termcolor import colored
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
+import labellines as ll
 
 warnings.filterwarnings("ignore")
 
 
-# Jointure des fichiers de click
 def join_data():
+    """
+    Jointure des fichiers de clics
+    """
     clicks_path = [
         f
         for f in os.listdir("data/clicks")
@@ -40,6 +43,14 @@ def join_data():
 
 
 def convert_to_spm(df, users=None, items=None):
+    """
+    Conversion d'un dataframe en sparse matrix items x users
+    ---
+    Paramètres :
+    - df: pd.DataFrame
+    - users: list
+    - items: list
+    """
     # creation de la sparse matrix
     if users is None:
         users = list(df["user_id"].unique())
@@ -53,11 +64,19 @@ def convert_to_spm(df, users=None, items=None):
     return spm
 
 
-##COLLABORATIVE FILTERING
+#############################
+## COLLABORATIVE FILTERING ##
+#############################
 
 
-# creation des ratings
 def scoring(df, thr=0):
+    """
+    Création de ratings à partir des clics
+    ---
+    Paramètres :
+    - df: pd.DataFrame
+    - thr: int, seuil de clics à partir duquel on considère une paire item x user comme positive
+    """
     # count des clicks/items/usr
     clicks_itusr = df.groupby(["user_id", "click_article_id"]).size().reset_index()
     clicks_itusr.rename(
@@ -71,32 +90,16 @@ def scoring(df, thr=0):
     return clicks_itusr  # freq item/usr
 
 
-#!implzementation scoring tfidf
-def scoring_tfidf(df):
-    # compute item-frequencies (tf)
-    tf = df.groupby(["user_id", "click_article_id"]).size().reset_index()
-    tf.rename(columns={0: "count", "click_article_id": "article_id"}, inplace=True)
-    tf["count"] /= tf.groupby("user_id")["count"].transform("sum")
-    # compute inverse user-frequence (idf)
-    idf = (
-        df.groupby("click_article_id")
-        .agg({"user_id": "nunique"})
-        .reset_index()
-        .rename(columns={"click_article_id": "article_id", "user_id": "nuser"})
-    )
-    idf["idf"] = np.log(df["user_id"].nunique() / idf["nuser"])
-    tf_idf = tf.merge(idf, on="article_id")
-    # tfidf/usr/item
-    tf_idf["score"] = tf_idf["count"] * tf_idf["idf"]
-    # subset columns
-    tf_idf = tf_idf[["user_id", "article_id", "score"]]
-    return tf_idf  # freq item/usr
-
-
-# ajout de TN pour les df
-
-
 def add_neg(df, factor, popularity, random_state=42):
+    """
+    Création de paires item x user négatives
+    ---
+    Paramètres :
+    - df: pd.DataFrame
+    - factor: int, nombre de négatifs voulus pour chaque paire positive
+    - popularity: pd.DataFrame, tableau de popularité des articles pour pondérer le sampling
+    - random_state: int, graine
+    """
     random.seed(random_state)
     #!genere des comb rd item/usr
     #!introduction popularity based negative sampling pour le SVD
@@ -130,14 +133,23 @@ def add_neg(df, factor, popularity, random_state=42):
 
 
 def train_svd(x_train, y_train, batch_size, n_epoch, n_users, n_items):
+    """
+    Entraînement d'un modèle de SVD
+    ---
+    Paramètres :
+    - x_train: np.ndarray
+    - y_train: np.ndarray
+    - batch_size: int
+    - n_epoch: int
+    - n_users: int
+    - n_items: int
+    """
     #!modif de la global mean > ajout de zeros
     global_mean = np.mean(y_train)
     print(colored("create model", "blue"))
-    # model = SVDpp(n_users, n_items, global_mean, reg_all=1 / 10000)
-    model = SVD(n_users, n_items, global_mean, reg_all=1 / 10000)
+    model = SVDpp(n_users, n_items, global_mean, reg_all=1 / 10000)
     # prise en compte des non zeros sur train
-    # print(colored("implicit feedback preheat", "blue"))
-    # model.implicit_feedback(x_train)
+    model.implicit_feedback(x_train)
     print(colored("compile model", "blue"))
     model.compile(loss="mean_squared_error", optimizer="adam")
     print(colored("fit model", "blue"))
@@ -145,8 +157,15 @@ def train_svd(x_train, y_train, batch_size, n_epoch, n_users, n_items):
     return model
 
 
-# predcition des top5
 def predict_top5(model, x_test, batch_size):
+    """
+    Prédiction des 5 meilleures prédictions par utilisateur
+    ---
+    Paramètres :
+    - model: modèle tfrec
+    - x_test: pd.DataFrame
+    - batch_size: int
+    """
     x_test_df = pd.DataFrame(x_test, columns=["user_id", "article_id"])
     x_test_df["preds"] = model.predict(x_test, batch_size=batch_size)
     top5 = (
@@ -161,28 +180,19 @@ def predict_top5(model, x_test, batch_size):
     return top5
 
 
-# Scoring des predictions
+#############
+## SCORING ##
+#############
+
+
 def ap_at_k(actual, predicted, k=5):
     """
-    Computes the average precision at k.
-
-    This function computes the average prescision at k between two lists of
-    items.
-
-    Parameters
-    ----------
-    actual : list
-             A list of elements that are to be predicted (order doesn't matter)
-    predicted : list
-                A list of predicted elements (order does matter)
-    k : int, optional
-        The maximum number of predicted elements
-
-    Returns
-    -------
-    score : double
-            The average precision at k over the input lists
-
+    Calcul de l'average precision @k
+    ---
+    Paramètres :
+    - actual: list
+    - predicted: list
+    - k: int
     """
     if len(predicted) > k:
         predicted = predicted[:k]
@@ -203,27 +213,12 @@ def ap_at_k(actual, predicted, k=5):
 
 def map_at_k(actual, predicted, k=5):
     """
-    Computes the mean average precision at k.
-
-    This function computes the mean average prescision at k between two lists
-    of lists of items.
-
-    Parameters
-    ----------
-    actual : list
-             A list of lists of elements that are to be predicted
-             (order doesn't matter in the lists)
-    predicted : list
-                A list of lists of predicted elements
-                (order matters in the lists)
-    k : int, optional
-        The maximum number of predicted elements
-
-    Returns
-    -------
-    score : double
-            The mean average precision at k over the input lists
-
+    Calcul de la mean average precision @k
+    ---
+    Paramètres :
+    - actual: list de lists
+    - predicted: list de lists
+    - k: int
     """
     common = actual.merge(predicted, on="user_id")
     actual = common["article_id"].values.tolist()
@@ -231,8 +226,15 @@ def map_at_k(actual, predicted, k=5):
     return np.mean([ap_at_k(a, p, k) for a, p in zip(actual, predicted)])
 
 
-# etude lien entre relevance ett performances
 def plot_apatk(relevant, top5):
+    """
+    Création d'une figure représentant l'évolution de l'AP@k en fonction
+    du nombre d'articles lus par utilisateur
+    ---
+    Paramètres :
+    - relevant: pd.DataFrame
+    - top5: list de lists
+    """
     common = relevant.merge(top5, on="user_id")
     relevant = common["article_id"].values.tolist()
     top5 = common[0].values.tolist()
@@ -248,11 +250,45 @@ def plot_apatk(relevant, top5):
     return fig, perf_by_len
 
 
-##CONTENT BASED
+def plot_hyperparam(df):
+    """
+    Création d'une figure de résultats de l'hyperparamétrisation
+    ---
+    Paramètres :
+    - df: pd.DataFrame
+    """
+    plt.style.use("custom_dark")
+    fig, ax = plt.subplots(1, 1)
+    for n in df["n_factor"].unique():
+        ax.plot(
+            df.loc[df["n_factor"] == n, "thr_pop"],
+            df.loc[df["n_factor"] == n, "mapatk"],
+            label=str(n),
+        )
+    fig.legend(
+        [int(i) for i in df["n_factor"].unique()],
+        title="Number of BPR factors",
+        borderaxespad=3,
+    )
+    ax.set_xlabel("Number of reads above which to use BPR")
+    ax.set_ylabel("MAP@5")
 
 
-# ACP sur l'embedding et calcul des similarités de contenu via cosinus
+###################
+## CONTENT BASED ##
+###################
+
+
 def get_similarity(top_k=5, pca_n_comp=25, red=True):
+    """
+    Création d'une matrice de similarité par cosinus, éventuellement après ACP
+    sur la matrice d'embedding
+    ---
+    Paramètres :
+    - top_k: int
+    - pca_n_comp: int
+    - red: bool, applique l'ACP uniquement si True
+    """
     emb = pkl.load(open("data/articles_embeddings.pickle", "rb"))
     if red:
         pca = PCA(n_components=pca_n_comp)
@@ -270,6 +306,13 @@ def get_similarity(top_k=5, pca_n_comp=25, red=True):
 
 
 def get_average_similarity(df):
+    """
+    Crée une figure montrant la similarité moyenne entre articles lus par utilisateur
+    ---
+    Paramètres :
+    - df: pd.DataFrame, tableau d'articles lus par utilisateur
+    """
+
     def upper_tri_masking(x):
         m = x.shape[0]
         r = np.arange(m)
@@ -301,10 +344,19 @@ def get_average_similarity(df):
     plt.xscale("log")
 
 
-##POPULARITE
+################
+## POPULARITÉ ##
+################
 
 
 def get_popularity(data):
+    """
+    Calcule la popularité de chaque article comme le
+    nombre d'utilisateurs ayant déjà lu l'article
+    ---
+    Paramètres :
+    - data: pd.DataFrame
+    """
     popdf = data.groupby("click_article_id").size().reset_index()
     popdf.rename(
         columns={0: "n_clicks", "click_article_id": "article_id"}, inplace=True
@@ -314,6 +366,12 @@ def get_popularity(data):
 
 
 def relevant(df):
+    """
+    Récupère la liste d'articles lus par utilisateur
+    ---
+    Paramètres :
+    - df: pd.DataFrame
+    """
     relevant = (
         df.sort_values("user_id")
         .groupby("user_id")["article_id"]

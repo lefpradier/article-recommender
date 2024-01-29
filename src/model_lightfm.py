@@ -45,6 +45,7 @@ def makerun(cfg: DictConfig):
         clicks_freq_tn = p9.add_neg(clicks_freq, 300, popularity)
         clicks_freq = p9.convert_to_spm(clicks_freq)
         train, test = random_train_test_split(clicks_freq, random_state=42)
+        #!Génération de négatifs
         clicks_freq_tn = clicks_freq_tn[clicks_freq_tn["count"] == 0]
         test = pd.DataFrame(
             {
@@ -60,6 +61,7 @@ def makerun(cfg: DictConfig):
         )
         test = pd.concat([clicks_freq_tn, test])
         relevant = p9.relevant(test[test["count"] > 0])
+
         print(colored("model", "blue"))
         #!model
         # TODO: ajout n_sampled
@@ -67,7 +69,7 @@ def makerun(cfg: DictConfig):
         model.fit(train, epochs=cfg.n_epoch, num_threads=20, verbose=True)
         with open("model/lightfm_%s.pkl" % cfg.max_sampled, "wb") as fle:
             pkl.dump(model, fle, protocol=pkl.HIGHEST_PROTOCOL)
-        #!pred
+        #!prédiction
         test["preds"] = model.predict(
             user_ids=test["user_id"].tolist(),
             item_ids=test["article_id"].tolist(),
@@ -101,6 +103,7 @@ def makerun(cfg: DictConfig):
         fig.savefig("plots/apatk_%s.png" % cfg.model_name)
         perf.to_csv("performances/apatk_relevant_%s.csv" % cfg.model_name, index=False)
 
+        #!logging
         mlflow.log_metrics(scores)
         mlflow.log_artifact("model/lightfm_encodings.pkl")
         mlflow.log_artifact("plots/apatk_%s.png" % cfg.model_name)

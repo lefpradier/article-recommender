@@ -22,9 +22,10 @@ def makerun(cfg: DictConfig):
     mlflow.set_experiment(cfg.mlflow.experiment_name)
 
     with mlflow.start_run(run_name=cfg.mlflow.run_name) as run:
+        #!importation des data
         data = pd.read_csv(cfg.data)
 
-        #!mide en forme
+        #!mise en forme
         # save usr item unique
         items = data["click_article_id"].unique().tolist()
         items.sort()
