@@ -51,7 +51,7 @@ with tab2:
     aut = staut.Authenticate(
         config["credentials"], config["cookie"]["name"], config["cookie"]["key"]
     )
-    name, status, user_name = aut.login("login", "main")
+    name, status, user_name = aut.login()
     # Si l'authentification est correcte
     if status:
         aut.logout("logout", "main")
