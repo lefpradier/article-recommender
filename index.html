@@ -1,0 +1,36 @@
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RecSys News articles</title>
+  <link rel="stylesheet" href="assets/style.css">
+
+</head>
+
+<body> 
+
+<h1 id="-article-recsys-app-https-github-com-lefpradier-article-recommender-"  class="h1 article-title"><a href="https://github.com/lefpradier/article-recommender">RecSys articles de presse</a></h1>
+<p><span class="tab">&emsp;Ce repository contient le code source permettant d'entraîner et de déployer un modèle de RecSys d'articles de presse. Il a été réalisé dans le cadre du projet 9 de la formation <em>Ingénieur IA</em> de l'organisme OpenClassrooms, dans lequel on souhaitait créer un MVP pour une application de recommandation de contenu.</span>  </p>
+<h2 id="motivation" class="h2 article-title">Motivation</h2>
+<p><span class="tab">&emsp;On souhaite ici obtenir un algorithme capable de fournir des recommandations à un utilisateur, éventuellemement en fonction de son historique s'il en a un. Ces recommandations doivent être les 5 articles les plus susceptibles de plaire à l'utilisateur.</span>  </p>
+<h2 id="jeu-de-donn-es" class="h2 article-title">Jeu de données</h2>
+<p><span class="tab">&emsp;Le modèle a été entraîné sur le jeu de données <a href="https://www.kaggle.com/datasets/gspmoreira/news-portal-user-interactions-by-globocom">News Portal User Interactions by Globo.com</a>. Ce jeu de données consiste en une collection d'environ 3 millions de clics de la part de 314 000 utilisateurs identifiés, sur 46 000 articles du site d'information Globo.com. Afin d'entraîner l'algorithme de recommandation, un système de feedback implicite a été utilisé : le fait d'avoir cliqué sur un article est considéré comme une preuve d'intérêt de la part d'un utilisateur.</span>  </p>
+<h2 id="type-de-mod-le-et-performances" class="h2 article-title">Type de modèle et performances</h2>
+<p><span class="tab">&emsp;Le RecSys déployé est un modèle hybride. D'une part, pour les nouveaux utilisateurs n'ayant encore aucun historique de lecture, le RecSys utilise un modèle basé sur la popularité des articles. D'autre part, un modèle de <em>collaborative filtering</em> est employé pour tous les autres utilisateurs, dans la mesure où ils ont un historique de lectures sur lesquels l'algorithme peut s'appuyer.</span>
+<span class="tab">&emsp;Plusieurs algorithmes ont été testés pour le collaborative filtering, mais le <em>Bayesian personalized ranking</em> est celui-ci qui permet d'obtenir la MAP@5 la plus élevée (0.086, en comparaison au SVD++ et à LightFM). Cela s'explique par l'attention particulière donnée par cet algorithme à la tâche de ranking, par opposition à d'autres algorithmes (tels que le SVD++) qui attachent une importance plus forte au scoring. Cet algorithme est également particulièrement bien adapté à l'utilisation de feedback implicite.</span>
+<img src=assets/bpr.png width=40% height=auto alt="Le BPR ne cherche pas à prédire le score de chaque item pour un utilisateur, mais plus des différences de rang entre items."></p>
+<h2 id="d-ploiement" class="h2 article-title">Déploiement</h2>
+<p><span class="tab">&emsp;Ce modèle est déployé grâce à une Azure Function (exposée initialement à l'adresse suivante : <a href="https://article-recommender.azurewebsites.net/">https://article-recommender.azurewebsites.net/</a>), et utilisé par une application Streamlit (initialement exposée à l'adresse suivante : <a href="https://article-recommender-mvp.azurewebsites.net/">https://article-recommender-mvp.azurewebsites.net/</a>).</span><br><img src=assets/azure-function.png width=70% height=auto alt="Le BPR ne cherche pas à prédire le score de chaque item pour un utilisateur, mais plus des différences de rang entre items."></p>
+<h2 id="id-es-d-am-lioration" class="h2 article-title">Idées d'amélioration</h2>
+<p><span class="tab">&emsp;L'utilisation de plusieurs paramètres permettraient d'améliorer le modèle de recommandation :</span></p>
+<ul class="goodlist">
+<li>En collectant les données utilisateurs provenant de réseaux sociaux, il serait possible<ul>
+<li>d'embedder les utilisateurs sur la base de variables démographiques</li>
+<li>de pondérer le collaborative filtering sur la base des liens sociaux entre utilisateurs</li>
+</ul>
+</li> 
+<li>Un questionnaire de bienvenue permettrait de situer les goûts des utilisateurs en termes de contenu des articles.</li>
+<li>La création de feedback explicite par les utilisateurs permettrait de ré-entraîner le modèle avec une connaissance plus fine de l'appréciation des différents items par les utilisateurs.</li>
+</ul>
+
+</body>
