@@ -1,4 +1,4 @@
-# [Article RecSys app](https://github.com/lefpradier/article-recommender)
+# [Article RecSys app](https://lefpradier.github.io/article-recommender)
 Ce repository contient le code source permettant d'entraîner et de déployer un modèle de RecSys d'articles de presse.
 Ce modèle est déployé grâce à une Azure Function (exposée initialement à l'adresse suivante : https://article-recommender.azurewebsites.net/), et utilisé par une application Streamlit (initialement exposée à l'adresse suivante : https://article-recommender-mvp.azurewebsites.net/).
 ## Spécifications techniques
